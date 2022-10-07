@@ -121,10 +121,7 @@ XFinMat,YFinMat, tmp1, tmp2 = utm.from_latlon(LatFinMat, LonFinMat,33,'N')
 XFinMat = XFinMat/m
 YFinMat = YFinMat/m
 
-fig = plt.figure(figsize = (10,10))
-ax = fig.subplots(1,1)
-fp=ax.pcolormesh(XFinMat,YFinMat,SlipinMat, cmap="viridis")
-plt.colorbar(fp,location='bottom',label="Slip (m)",shrink=.6)
+
 
 fig = plt.figure(figsize = (10,10))
 ax = fig.subplots(1,1)
@@ -143,23 +140,106 @@ ax.set_ylim(ymin,ymax)
 ax.set_aspect('equal',adjustable='box')
 ax.set_title('Topografía Italia Central')
 
+fig = plt.figure(figsize = (10,10))
+ax = fig.subplots(1,3)
+ax[0].pcolormesh(XFinMat,YFinMat,SlipinMat, cmap="viridis")
+ax[0].set_aspect('equal',adjustable='box')
+ax[1].pcolormesh(XFinMat,ZFinMat,SlipinMat, cmap="viridis")
+ax[1].set_aspect('equal',adjustable='box')
+ax[2].pcolormesh(ZFinMat,YFinMat,SlipinMat, cmap="viridis")
+ax[2].set_aspect('equal',adjustable='box')
+
 fig = plt.figure()
 ax = plt.axes(projection ='3d')
 
-surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.viridis(SlipinMat), linewidth=0,
+surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
                         antialiased=False )
-plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
 ax.set_title("Input Slip")
 ax.set_xlabel(" X (Km)")
 ax.set_ylabel(" Y (Km)")
 ax.set_zlabel(" Z (Km)")
 ax.set_xlim(xmin,xmax)
 ax.set_ylim(ymin,ymax)
+ax.set_aspect('equal',adjustable='box')
 ax.azim = 0
-ax.dist = 10
+ax.dist = 5
 ax.elev = 0
 plt.show()
 
+fig = plt.figure()
+ax = plt.axes(projection ='3d')
+
+surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+                        antialiased=False )
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+ax.set_title("Input Slip")
+ax.set_xlabel(" X (Km)")
+ax.set_ylabel(" Y (Km)")
+ax.set_zlabel(" Z (Km)")
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
+ax.set_aspect('equal',adjustable='box')
+ax.azim = -90
+ax.dist = 3
+ax.elev = 0
+plt.show()
+
+
+fig = plt.figure()
+ax = plt.axes(projection ='3d')
+surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+                        antialiased=False )
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+ax.set_title("Input Slip")
+ax.set_xlabel(" X (Km)")
+ax.set_ylabel(" Y (Km)")
+ax.set_zlabel(" Z (Km)")
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
+ax.set_aspect('equal',adjustable='box')
+ax.azim = 0
+ax.dist = 5
+ax.elev = -90
+plt.show()
+
+
+fig = plt.figure()
+ax1 = fig.add_subplot(121, projection='3d')
+surf = ax1.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+                        antialiased=False )
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+ax1.set_title("Input Slip")
+ax1.set_xlabel(" X (Km)")
+ax1.set_ylabel(" Y (Km)")
+ax1.set_zlabel(" Z (Km)")
+ax1.set_xlim(xmin,xmax)
+ax1.set_ylim(ymin,ymax)
+ax1.set_zlim(-15.0,15.0)
+ax1.set_aspect('equal',adjustable='box')
+ax1.azim = -120
+ax1.dist = 5
+ax1.elev = 10
+
+ax2 = fig.add_subplot(122, projection='3d')
+surf = ax2.plot_surface( XFinMat, YFinMat, -ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+                        antialiased=False )
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+ax2.set_title("Input Slip")
+ax2.set_xlabel(" X (Km)")
+ax2.set_ylabel(" Y (Km)")
+ax2.set_zlabel(" Z (Km)")
+ax2.set_xlim(xmin,xmax)
+ax2.set_ylim(ymin,ymax)
+ax2.set_zlim(-15.0,15.0)
+ax2.set_aspect('equal',adjustable='box')
+ax2.azim = -120
+ax2.dist = 5
+ax2.elev = 10
+plt.show()
+
+
+plt.show()
 
 print("  ")
 print(" END PROGRAM ")
