@@ -138,74 +138,74 @@ ax.set_ylabel(" Y (Km)")
 ax.set_xlim(xmin,xmax)
 ax.set_ylim(ymin,ymax)
 ax.set_aspect('equal',adjustable='box')
-ax.set_title('Topografía Italia Central')
+ax.set_title('Topografía Italia Central Input Slip')
 
-fig = plt.figure(figsize = (10,10))
-ax = fig.subplots(1,3)
-ax[0].pcolormesh(XFinMat,YFinMat,SlipinMat, cmap="viridis")
-ax[0].set_aspect('equal',adjustable='box')
-ax[1].pcolormesh(XFinMat,ZFinMat,SlipinMat, cmap="viridis")
-ax[1].set_aspect('equal',adjustable='box')
-ax[2].pcolormesh(ZFinMat,YFinMat,SlipinMat, cmap="viridis")
-ax[2].set_aspect('equal',adjustable='box')
+# Interpolation of fault plane
+dstk = np.array([ XFinMat[0,1]-XFinMat[0,0], YFinMat[0,1]-YFinMat[0,0],
+                  ZFinMat[0,1]-ZFinMat[0,0] ])
+dstkin = np.linalg.norm(dstk)
+
+ddip = np.array([ XFinMat[1,0]-XFinMat[0,0], YFinMat[1,0]-YFinMat[0,0],
+                  ZFinMat[1,0]-ZFinMat[0,0] ])
+ddipin = np.linalg.norm(ddip)
+
+dstk = dstk*dhF
+ddip = ddip*dhF
+
+# Calculate the strike and dip unitary vetors
+univec_stk = np.linalg.norm(dstk)
+univec_dip = np.linalg.norm(ddip)
+
+stk = round((nstkin-1)*dstkin)
+dip = round((ndipin-1)*ddipin)
+
+hypox, hypoy, tmp1, tmp2 = utm.from_latlon(hypolat,hypolon,33,'N')
+hypox = hypox/m
+hypoy = hypoy/m
+print()
+print(" Original Fault Dimensions:")
+print(" Strike (Km): %6.2f nstk: %d dstk (Km): %6.2f " %(stk,nstkin,dstkin) )
+print(" Dip (Km): %6.2f ndip: %d ddip (Km): %6.2f" %(dip,ndipin,ddipin) )
+print(" Hypocenter Coordinates x, y and z (Km): %6.2f %6.2f %6.2f " %(hypox,hypoy,hypoz) )
+
+dipinVec = np.linspace(0, dip, ndipin)
+stkinVec = np.linspace(0, stk, nstkin)
+stkinMat, dipinMat = np.meshgrid(stkinVec,dipinVec)
+
+#interpolation
+nstk = int(stk/dhF)+1
+ndip = int(dip/dhF)+1
+stkVec = np.linspace(0, stk, nstk)
+dipVec = np.linspace(0, dip, ndip)
+stkMat, dipMat = np.meshgrid(stkVec,dipVec)
+
+# Slip Interpolation
+SlipF = interpolate.interp2d(stkinVec,dipinVec,SlipinMat, kind = "linear")
+SlipMat = SlipF(stkVec, dipVec)
+
+#Coordinates Interpolation
+inivec = np.array([ XFinMat[0,0], YFinMat[0,0], ZFinMat[0,0] ])
+
+XFMat = np.zeros((ndip,nstk))
+YFMat = np.zeros((ndip,nstk))
+ZFMat = np.zeros((ndip,nstk))
+
+for istk in range (0,nstk):
+    delta_stk = istk*dstk
+    for idip in range (0,ndip ):
+        delta_dip = idip*ddip
+        XFMat[idip,istk] = inivec[0] + delta_stk[0] + delta_dip[0]
+        YFMat[idip,istk] = inivec[1] + delta_stk[1] + delta_dip[1]
+        ZFMat[idip,istk] = inivec[2] + delta_stk[2] + delta_dip[2]
+
+# From matrix to column vector following fortran 
+XF3D = XFMat.flatten(order='F').transpose()
+YF3D = YFMat.flatten(order='F').transpose()
+ZF3D = ZFMat.flatten(order='F').transpose()
+
 
 fig = plt.figure()
-ax = plt.axes(projection ='3d')
-
-surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
-                        antialiased=False )
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
-ax.set_title("Input Slip")
-ax.set_xlabel(" X (Km)")
-ax.set_ylabel(" Y (Km)")
-ax.set_zlabel(" Z (Km)")
-ax.set_xlim(xmin,xmax)
-ax.set_ylim(ymin,ymax)
-ax.set_aspect('equal',adjustable='box')
-ax.azim = 0
-ax.dist = 5
-ax.elev = 0
-plt.show()
-
-fig = plt.figure()
-ax = plt.axes(projection ='3d')
-
-surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
-                        antialiased=False )
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
-ax.set_title("Input Slip")
-ax.set_xlabel(" X (Km)")
-ax.set_ylabel(" Y (Km)")
-ax.set_zlabel(" Z (Km)")
-ax.set_xlim(xmin,xmax)
-ax.set_ylim(ymin,ymax)
-ax.set_aspect('equal',adjustable='box')
-ax.azim = -90
-ax.dist = 3
-ax.elev = 0
-plt.show()
-
-
-fig = plt.figure()
-ax = plt.axes(projection ='3d')
-surf = ax.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
-                        antialiased=False )
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
-ax.set_title("Input Slip")
-ax.set_xlabel(" X (Km)")
-ax.set_ylabel(" Y (Km)")
-ax.set_zlabel(" Z (Km)")
-ax.set_xlim(xmin,xmax)
-ax.set_ylim(ymin,ymax)
-ax.set_aspect('equal',adjustable='box')
-ax.azim = 0
-ax.dist = 5
-ax.elev = -90
-plt.show()
-
-
-fig = plt.figure()
-ax1 = fig.add_subplot(121, projection='3d')
+ax1 = fig.add_subplot(221, projection='3d')
 surf = ax1.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
                         antialiased=False )
 #plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
@@ -213,32 +213,57 @@ ax1.set_title("Input Slip")
 ax1.set_xlabel(" X (Km)")
 ax1.set_ylabel(" Y (Km)")
 ax1.set_zlabel(" Z (Km)")
-ax1.set_xlim(xmin,xmax)
-ax1.set_ylim(ymin,ymax)
+ax1.set_xlim(340,380)
+ax1.set_ylim(4720,4760)
 ax1.set_zlim(-15.0,15.0)
 ax1.set_aspect('equal',adjustable='box')
 ax1.azim = -120
-ax1.dist = 5
+ax1.dist = 10
 ax1.elev = 10
 
-ax2 = fig.add_subplot(122, projection='3d')
-surf = ax2.plot_surface( XFinMat, YFinMat, -ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+ax2 = fig.add_subplot(222, projection='3d')
+surf = ax2.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
                         antialiased=False )
 #plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
-ax2.set_title("Input Slip")
+ax2.set_title("Interpolated Slip")
 ax2.set_xlabel(" X (Km)")
 ax2.set_ylabel(" Y (Km)")
 ax2.set_zlabel(" Z (Km)")
-ax2.set_xlim(xmin,xmax)
-ax2.set_ylim(ymin,ymax)
+ax2.set_xlim(340,380)
+ax2.set_ylim(4720,4760)
 ax2.set_zlim(-15.0,15.0)
 ax2.set_aspect('equal',adjustable='box')
 ax2.azim = -120
-ax2.dist = 5
+ax2.dist = 10
 ax2.elev = 10
-plt.show()
 
+ax3 = fig.add_subplot(223, projection='3d')
+surf = ax3.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+                        antialiased=False )
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+ax3.set_xlabel(" X (Km)")
+ax3.set_ylabel(" Y (Km)")
+ax3.set_xlim(340,380)
+ax3.set_ylim(4700,4750)
+ax3.set_zlim(-15.0,15.0)
+ax3.set_aspect('equal',adjustable='box')
+ax3.azim = -90
+ax3.dist = 10
+ax3.elev = 90
 
+ax4 = fig.add_subplot(224, projection='3d')
+surf = ax4.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
+                        antialiased=False )
+#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
+ax4.set_xlabel(" X (Km)")
+ax4.set_ylabel(" Y (Km)")
+ax4.set_xlim(340,380)
+ax4.set_ylim(4700,4750)
+ax4.set_zlim(-15.0,15.0)
+ax4.set_aspect('equal',adjustable='box')
+ax4.azim = -90
+ax4.dist = 10
+ax4.elev = 90
 plt.show()
 
 print("  ")
