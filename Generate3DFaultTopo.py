@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.spatial import Delaunay
+from scipy.spatial import distance
 import pickle
 from pathlib import Path
 import pygmt
@@ -116,11 +117,11 @@ LatFinMat = np.reshape(inData[:,0], (ndipin, nstkin))
 LonFinMat = np.reshape(inData[:,1], (ndipin, nstkin))
 ZFinMat = np.reshape(inData[:,4], (ndipin, nstkin))
 SlipinMat = np.reshape(inData[:,5], (ndipin, nstkin))
+SlipinMat = np.flipud(SlipinMat)
 
 XFinMat,YFinMat, tmp1, tmp2 = utm.from_latlon(LatFinMat, LonFinMat,33,'N')
 XFinMat = XFinMat/m
 YFinMat = YFinMat/m
-
 
 
 fig = plt.figure(figsize = (10,10))
@@ -190,6 +191,9 @@ XFMat = np.zeros((ndip,nstk))
 YFMat = np.zeros((ndip,nstk))
 ZFMat = np.zeros((ndip,nstk))
 
+hypod = np.zeros((ndip,nstk))       # Hypocenter distance
+hypoxy = [hypox, hypoy]
+
 for istk in range (0,nstk):
     delta_stk = istk*dstk
     for idip in range (0,ndip ):
@@ -197,49 +201,32 @@ for istk in range (0,nstk):
         XFMat[idip,istk] = inivec[0] + delta_stk[0] + delta_dip[0]
         YFMat[idip,istk] = inivec[1] + delta_stk[1] + delta_dip[1]
         ZFMat[idip,istk] = inivec[2] + delta_stk[2] + delta_dip[2]
+        
+        # Calculate hypocenter distance in XY coords.
+        XYvec = [XFMat[idip,istk],YFMat[idip,istk]]
+        hypod[idip,istk] = distance.euclidean(XYvec,hypoxy)
+ 
+# Find the indexes of the hypocenter
+hypoistk, hypoidip = np.where(hypod == np.min(hypod))
 
+# Calculate the rigth z fault coords using hypocenter
+zmov = hypoz - ZFMat[hypoistk,hypoidip]
+ZFMat = ZFMat + zmov       
+        
 # From matrix to column vector following fortran 
 XF3D = XFMat.flatten(order='F').transpose()
 YF3D = YFMat.flatten(order='F').transpose()
 ZF3D = ZFMat.flatten(order='F').transpose()
 
 
+# Find the indexes of the hypocenter
+hypoistk, hypoidip = np.where(hypod == np.min(hypod))
+
 fig = plt.figure()
-ax1 = fig.add_subplot(221, projection='3d')
-surf = ax1.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
+ax3 = fig.add_subplot(121, projection='3d')
+surf = ax3.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
                         antialiased=False )
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
-ax1.set_title("Input Slip")
-ax1.set_xlabel(" X (Km)")
-ax1.set_ylabel(" Y (Km)")
-ax1.set_zlabel(" Z (Km)")
-ax1.set_xlim(340,380)
-ax1.set_ylim(4720,4760)
-ax1.set_zlim(-15.0,15.0)
-ax1.set_aspect('equal',adjustable='box')
-ax1.azim = -120
-ax1.dist = 10
-ax1.elev = 10
-
-ax2 = fig.add_subplot(222, projection='3d')
-surf = ax2.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
-                        antialiased=False )
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
-ax2.set_title("Interpolated Slip")
-ax2.set_xlabel(" X (Km)")
-ax2.set_ylabel(" Y (Km)")
-ax2.set_zlabel(" Z (Km)")
-ax2.set_xlim(340,380)
-ax2.set_ylim(4720,4760)
-ax2.set_zlim(-15.0,15.0)
-ax2.set_aspect('equal',adjustable='box')
-ax2.azim = -120
-ax2.dist = 10
-ax2.elev = 10
-
-ax3 = fig.add_subplot(223, projection='3d')
-surf = ax3.plot_surface( XFinMat, YFinMat, ZFinMat, facecolors=cm.hsv(SlipinMat), linewidth=0,
-                        antialiased=False )
+ax3.scatter(hypox,hypoy,hypoz,color='black', marker='*')
 #plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
 ax3.set_xlabel(" X (Km)")
 ax3.set_ylabel(" Y (Km)")
@@ -247,13 +234,14 @@ ax3.set_xlim(340,380)
 ax3.set_ylim(4700,4750)
 ax3.set_zlim(-15.0,15.0)
 ax3.set_aspect('equal',adjustable='box')
-ax3.azim = -90
+ax3.azim = -120
 ax3.dist = 10
-ax3.elev = 90
+ax3.elev = 10
 
-ax4 = fig.add_subplot(224, projection='3d')
+ax4 = fig.add_subplot(122, projection='3d')
 surf = ax4.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
                         antialiased=False )
+ax4.scatter(hypox,hypoy,10,color='black', marker='*')
 #plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
 ax4.set_xlabel(" X (Km)")
 ax4.set_ylabel(" Y (Km)")
@@ -265,6 +253,102 @@ ax4.azim = -90
 ax4.dist = 10
 ax4.elev = 90
 plt.show()
+
+
+ntri  = (nstk-1)*(ndip-1)*2
+tri   = np.zeros([ntri,3],dtype=int)
+XY3D  = np.array((XF3D,YF3D)).transpose()
+
+# Delaunay triangulation
+tri = Delaunay(XY3D).simplices
+ntri = int(tri.size/3)
+
+triBmarker = np.ones(ntri,)
+# Calculate unitary normal, strike and dip vector at each facet
+univector = np.zeros((ntri,9))
+# Vector normal to earth surface
+nsurf = np.array([0,0,-1])
+
+for itri in range(0,ntri):
+    iv0 = tri[itri,0]
+    iv1 = tri[itri,1]
+    iv2 = tri[itri,2]
+    v0 = np.array([ XF3D[iv0], YF3D[iv0], ZF3D[iv0]])
+    v1 = np.array([ XF3D[iv1], YF3D[iv1], ZF3D[iv1]])
+    v2 = np.array([ XF3D[iv2], YF3D[iv2], ZF3D[iv2]])
+    vnormal = np.cross(v1-v0,v2-v0)
+    vstrike = np.cross(vnormal,nsurf)
+    vdip    = np.cross(vstrike,vnormal)
+    univector[itri,0:3] = vnormal/np.linalg.norm(vnormal)
+    univector[itri,3:6] = vstrike/np.linalg.norm(vstrike)
+    univector[itri,6:9] = vdip/np.linalg.norm(vdip)
+
+fcoor = np.array((XF3D,YF3D,ZF3D)).transpose()
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.plot_trisurf(XF3D,YF3D,ZF3D, triangles=tri)
+ax.azim = -100
+ax.dist = 10
+ax.elev = 10
+ax.set_title(' Delaunay Fault Triangulation ')
+
+name = name+str(int(dhF*1000))+'m'
+
+# Output Dictionary
+Fault = {}
+
+Fault['dhF'] = dhF
+
+Fault['nstk'] = nstk
+Fault['ndip'] = ndip
+
+Fault['XF3D'] = XF3D
+Fault['YF3D'] = YF3D
+Fault['ZF3D'] = ZF3D
+
+Fault['stkMat'] = stkMat
+Fault['dipMat'] = dipMat
+
+Fault['ntri'] = ntri
+Fault['tri']  = tri
+Fault['triBmarker'] = triBmarker
+
+Fault['SlipMat']  = SlipMat
+
+Fault['fcoor']   = fcoor
+Fault['outname'] = name
+
+Fault['hypox'] = hypox
+Fault['hypoy'] = hypoy
+Fault['hypoz'] = hypoz
+Fault['hypoistk'] = hypoistk
+Fault['hypoidip'] = hypoidip
+
+
+print()
+print(" Output Fault Dimensions:")
+print(" Strike (Km): %6.2f nstk: %d dstk (Km): %6.2f " %(stk,nstk,np.linalg.norm(dstk)) )
+print(" Dip (Km): %6.2f ndip: %d ddip (Km): %6.2f " %(dip,ndip,np.linalg.norm(ddip)) )
+
+outfile = outDir.joinpath(name+'.pickle')
+
+fileObj = open(outfile, 'wb')
+pickle.dump(Fault, fileObj)
+fileObj.close()
+
+print()
+print(f" Fault info saved in:  {outfile} ")
+
+# Write .vector file
+fvectorHeader = "%d" %(ntri)
+fvector = outDir.joinpath(name+'.vector')
+with open(fvector,'wb') as f:
+    np.savetxt(f, univector,header=fvectorHeader, comments=' ',fmt='%10.6f')
+f.close()
+
+print()
+print(f" Fault vector file written in:  {fvector} ")
 
 print("  ")
 print(" END PROGRAM ")
