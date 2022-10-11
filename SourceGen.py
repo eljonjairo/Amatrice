@@ -76,15 +76,15 @@ infile = inDir.joinpath(infile)
 
 inData = np.loadtxt(infile, skiprows = 50)
 
-SRateinMat = np.zeros([ndipin,nstkin,ntwin])
+SlipinMat = np.zeros([ndipin,nstkin,ntwin])
 SlipFinMat = np.zeros([ndipin,nstkin])
 
 twin = np.arange(6,46,2)
 itw = 0
 for it in twin:
-    SRatetmp = np.flipud(np.reshape(inData[:,it], (ndipin, nstkin)))
-    SlipFinMat = SlipFinMat + SRatetmp
-    SRateinMat[:,:,itw] = SRatetmp
+    Sliptmp = np.flipud(np.reshape(inData[:,it], (ndipin, nstkin)))
+    SlipFinMat = SlipFinMat + Sliptmp
+    SlipinMat[:,:,itw] = Sliptmp
     itw += 1
 
 # Load Fault parameters
@@ -96,7 +96,7 @@ stkinMat = Fault['stkinMat']
 dipinMat = Fault['dipinMat']
 stkinVec = Fault['stkinVec']
 dipinVec = Fault['dipinVec']
-SlipMat = Fault['SlipMat']
+Slip = Fault['SlipMat']
 nstk = Fault['nstk']
 ndip = Fault['ndip']
 hypoistk = Fault['hypoistk']
@@ -105,52 +105,57 @@ hypoidip = Fault['hypoidip']
 # Comparison Interpolated Slip and Sum of Srate time windows inputs.
 fig = plt.figure()
 ax = fig.subplots(1,2)
-sin = ax[0].pcolormesh(stkMat,dipMat,SlipMat)
+sin = ax[0].pcolormesh(stkMat,dipMat,Slip,cmap='hsv')
 plt.colorbar(sin,location='bottom',label="Slip (m)",shrink=.9)
-sinf = ax[1].pcolormesh(stkinMat,dipinMat,SlipFinMat)
+sinf = ax[1].pcolormesh(stkinMat,dipinMat,SlipFinMat,cmap='hsv')
 plt.colorbar(sinf,location='bottom',label="Slip (m)",shrink=.9)
 
 # Spatial interpolation of srates
-SRateMatEsp = np.zeros([ndip,nstk,ntwin])
+SlipMatEsp = np.zeros([ndip,nstk,ntwin])
 SlipFMatEsp = np.zeros([ndip,nstk])
 for itw in range (0,ntwin):
-    SRatetmp = SRateinMat[:,:,itw] 
-    SRateF = interpolate.interp2d(stkinVec,dipinVec,SRatetmp, kind = "linear")
-    SRateMatEsp[:,:,itw] = SRateF(stkVec, dipVec)
-    SlipFMatEsp = SlipFMatEsp + SRateMatEsp[:,:,itw]
+    Sliptmp = SlipinMat[:,:,itw] 
+    SlipF = interpolate.interp2d(stkinVec,dipinVec,Sliptmp, kind = "linear")
+    SlipMatEsp[:,:,itw] = SlipF(stkVec, dipVec)
+    SlipFMatEsp = SlipFMatEsp + SlipMatEsp[:,:,itw]
 
-# Temporal interpolation of srates
+# Temporal interpolation of slips
 inTime = np.arange(0,8,dtwin)
 tmax = np.max(inTime);
 Time = np.arange(0,tmax,dt)
 nt = int(Time.size)
-SRateMat = np.zeros([ndip,nstk,nt])
-SlipFMat = np.zeros([ndip,nstk])
+SlipMat = np.zeros([ndip,nstk,nt])
+
 for istk in range (0,nstk):
-   for idip in range (0,ndip ):
-       SRateTime  = SRateMatEsp[idip,istk,:]
-       SRateTimeF = interpolate.interp1d(inTime,SRateTime)
-       SRateMat[idip,istk,:] = SRateTimeF(Time)
+    for idip in range (0,ndip ):
+        SlipTime  = SlipMatEsp[idip,istk,:]
+        SlipTimeF = interpolate.interp1d(inTime,SlipTime,kind="cubic")
+        SlipMat[idip,istk,:] = SlipTimeF(Time)
 
 # Check temporal interpolation in the hypocenter
 fig = plt.figure()
-plt.scatter(inTime,SRateMatEsp[hypoidip,hypoistk,:])
+plt.scatter(inTime,SlipMatEsp[hypoidip,hypoistk,:])
+plt.plot(Time,SlipMat[hypoidip,hypoistk,:].transpose())
 
-plt.plot(Time,SRateMat[hypoidip,hypoistk,:].transpose())
-       
-for it in range(0,nt):       
-       SlipFMat = SlipFMat + SRateMat[:,:,it]
-       
-# Comparison Interpolated Slip and Sum of Srate time windows inputs.
+# Calculate SlipRates
+SRate = np.zeros([ndip,nstk,nt])
+for it in range(1,nt):
+    for istk in range (0,nstk):
+        for idip in range (0,ndip ):
+            SRate[idip,istk,it] = ( SlipMat[idip,istk,it]-SlipMat[idip,istk,it-1])/dt
+            
+itws = [0,1,2,3,4,5,6,7]
 fig = plt.figure()
-ax = fig.subplots(1,3)
-sin = ax[0].pcolormesh(stkMat,dipMat,SlipMat)
-plt.colorbar(sin,location='bottom',label="Slip (m)",shrink=.9)
-sinE = ax[1].pcolormesh(stkMat,dipMat,SlipFMatEsp)
-plt.colorbar(sinE,location='bottom',label="Slip (m)",shrink=.9)
-sinT = ax[2].pcolormesh(stkMat,dipMat,SlipFMat)
-plt.colorbar(sinT,location='bottom',label="Slip (m)",shrink=.9)
-       
+ax = fig.subplots(8,1)
+for itw in itws:
+    it = int(itw/dtwin)
+    itime = ("%3.1f" %(it*dtwin) )
+    SRatefig = SRate[:,:,it]
+    sin = ax[itw].pcolormesh(stkMat,dipMat,SRatefig,cmap='hsv',vmin=0,vmax=0.3)
+    ax[itw].text(32,7,itime,fontsize=8,fontweight='bold',color='white')
+
+# plt.colorbar(sin,location='bottom',label="Slip (m)",shrink=.9)     
+
 print("  ")
 print(" END PROGRAM ")
 print("  ")
