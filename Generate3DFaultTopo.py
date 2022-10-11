@@ -26,10 +26,8 @@ import pandas as pd
 import matplotlib.colors
 from matplotlib import cm
 
-
 warnings.filterwarnings("ignore")
 os.system('clear')
-
 
 dhF = 0.5  # Output subfaults size in Km
 inDir  = Path('Input/')
@@ -123,7 +121,6 @@ XFinMat,YFinMat, tmp1, tmp2 = utm.from_latlon(LatFinMat, LonFinMat,33,'N')
 XFinMat = XFinMat/m
 YFinMat = YFinMat/m
 
-
 fig = plt.figure(figsize = (10,10))
 ax = fig.subplots(1,1)
 mp=ax.pcolormesh(TopoXMat,TopoYMat,TopoZMat*m, cmap=cTopo)
@@ -163,6 +160,7 @@ dip = round((ndipin-1)*ddipin)
 hypox, hypoy, tmp1, tmp2 = utm.from_latlon(hypolat,hypolon,33,'N')
 hypox = hypox/m
 hypoy = hypoy/m
+
 print()
 print(" Original Fault Dimensions:")
 print(" Strike (Km): %6.2f nstk: %d dstk (Km): %6.2f " %(stk,nstkin,dstkin) )
@@ -207,10 +205,10 @@ for istk in range (0,nstk):
         hypod[idip,istk] = distance.euclidean(XYvec,hypoxy)
  
 # Find the indexes of the hypocenter
-hypoistk, hypoidip = np.where(hypod == np.min(hypod))
+hypoidip, hypoistk = np.where(hypod == np.min(hypod))
 
 # Calculate the rigth z fault coords using hypocenter
-zmov = hypoz - ZFMat[hypoistk,hypoidip]
+zmov = hypoz - ZFMat[hypoidip,hypoistk]
 ZFMat = ZFMat + zmov       
         
 # From matrix to column vector following fortran 
@@ -220,7 +218,7 @@ ZF3D = ZFMat.flatten(order='F').transpose()
 
 
 # Find the indexes of the hypocenter
-hypoistk, hypoidip = np.where(hypod == np.min(hypod))
+hypoidip, hypoistk = np.where(hypod == np.min(hypod))
 
 fig = plt.figure()
 ax3 = fig.add_subplot(121, projection='3d')
@@ -307,8 +305,14 @@ Fault['XF3D'] = XF3D
 Fault['YF3D'] = YF3D
 Fault['ZF3D'] = ZF3D
 
+Fault['stkVec'] = stkVec
+Fault['dipVec'] = dipVec
+Fault['stkinVec'] = stkinVec
+Fault['dipinVec'] = dipinVec
 Fault['stkMat'] = stkMat
 Fault['dipMat'] = dipMat
+Fault['stkinMat'] = stkinMat
+Fault['dipinMat'] = dipinMat
 
 Fault['ntri'] = ntri
 Fault['tri']  = tri
