@@ -22,7 +22,8 @@ import matplotlib.cm as cm
 from scipy.io import FortranFile
 from pathlib import Path
 from scipy import interpolate
-
+import matplotlib.colors
+from matplotlib.colors import Normalize
 
 from IPython import get_ipython
 get_ipython().magic('reset -sf')
@@ -40,7 +41,7 @@ name = "AmatricePizzi2017_dhF"  # Output files name
 ObjName = 'AmatricePizzi2017_dhF500m.pickle'
 
 # Source Inputs
-dt = 0.01;
+dt = 0.1;
 lowcut  = 2.0                              # srate low pass cut frecuency
 highcut = 0.01                             # srate cut high pass frecuency
 fs = 1/dt                                  # Sample rate
@@ -76,16 +77,20 @@ infile = inDir.joinpath(infile)
 
 inData = np.loadtxt(infile, skiprows = 50)
 
-SlipinMat = np.zeros([ndipin,nstkin,ntwin])
-SlipFinMat = np.zeros([ndipin,nstkin])
-
+# Load Slip in each time window
+DeltaSlipinMat = np.zeros([ndipin,nstkin,ntwin])
 twin = np.arange(6,46,2)
 itw = 0
 for it in twin:
-    Sliptmp = np.flipud(np.reshape(inData[:,it], (ndipin, nstkin)))
-    SlipFinMat = SlipFinMat + Sliptmp
-    SlipinMat[:,:,itw] = Sliptmp
+    DSliptmp = np.flipud(np.reshape(inData[:,it], (ndipin, nstkin)))
+    DeltaSlipinMat[:,:,itw] = DSliptmp
     itw += 1
+
+# Calculate the accumulated slip in each time window
+# Acumulated Slip
+SlipinMat = np.zeros([ndipin,nstkin,ntwin])
+for it in range (1,itw):
+    SlipinMat[:,:,it] = SlipinMat[:,:,it-1] + DeltaSlipinMat[:,:,it] 
 
 # Load Fault parameters
 stkMat = Fault['stkMat']
@@ -102,22 +107,14 @@ ndip = Fault['ndip']
 hypoistk = Fault['hypoistk']
 hypoidip = Fault['hypoidip']
 
-# Comparison Interpolated Slip and Sum of Srate time windows inputs.
-fig = plt.figure()
-ax = fig.subplots(1,2)
-sin = ax[0].pcolormesh(stkMat,dipMat,Slip,cmap='hsv')
-plt.colorbar(sin,location='bottom',label="Slip (m)",shrink=.9)
-sinf = ax[1].pcolormesh(stkinMat,dipinMat,SlipFinMat,cmap='hsv')
-plt.colorbar(sinf,location='bottom',label="Slip (m)",shrink=.9)
-
-# Spatial interpolation of srates
+# Spatial interpolation of accumulated  slip
 SlipMatEsp = np.zeros([ndip,nstk,ntwin])
-SlipFMatEsp = np.zeros([ndip,nstk])
+
 for itw in range (0,ntwin):
     Sliptmp = SlipinMat[:,:,itw] 
     SlipF = interpolate.interp2d(stkinVec,dipinVec,Sliptmp, kind = "linear")
     SlipMatEsp[:,:,itw] = SlipF(stkVec, dipVec)
-    SlipFMatEsp = SlipFMatEsp + SlipMatEsp[:,:,itw]
+   
 
 # Temporal interpolation of slips
 inTime = np.arange(0,8,dtwin)
@@ -125,41 +122,69 @@ tmax = np.max(inTime);
 Time = np.arange(0,tmax,dt)
 nt = int(Time.size)
 SlipMat = np.zeros([ndip,nstk,nt])
-
 for istk in range (0,nstk):
     for idip in range (0,ndip ):
         SlipTime  = SlipMatEsp[idip,istk,:]
         SlipTimeF = interpolate.interp1d(inTime,SlipTime,kind="cubic")
         SlipMat[idip,istk,:] = SlipTimeF(Time)
 
+# Comparison of loaded Interpolated Final Slip and last accumulated Slip 
+# spatial and temporal interpolated window.
+fig = plt.figure()
+ax = fig.subplots(1,2)
+sin = ax[0].pcolormesh(stkMat,dipMat,Slip,cmap='hsv')
+plt.colorbar(sin,location='bottom',label="Slip (m)",shrink=.9)
+sinf = ax[1].pcolormesh(stkMat,dipMat,SlipMat[:,:,-1],cmap='hsv')
+plt.colorbar(sinf,location='bottom',label="Slip (m)",shrink=.9)
+
 # Check temporal interpolation in the hypocenter
 fig = plt.figure()
 plt.scatter(inTime,SlipMatEsp[hypoidip,hypoistk,:])
 plt.plot(Time,SlipMat[hypoidip,hypoistk,:].transpose())
 
-# Calculate SlipRates
+#Sliprate calculation
 SRate = np.zeros([ndip,nstk,nt])
 for it in range(1,nt):
     for istk in range (0,nstk):
         for idip in range (0,ndip ):
             SRate[idip,istk,it] = ( SlipMat[idip,istk,it]-SlipMat[idip,istk,it-1])/dt
-            
-itws = [0,1,2,3,4,5,6,7]
-fig = plt.figure()
-ax = fig.subplots(8,1)
-for itw in itws:
-    it = int(itw/dtwin)
-    itime = ("%3.1f" %(it*dtwin) )
-    SRatefig = SRate[:,:,it]
-    sin = ax[itw].pcolormesh(stkMat,dipMat,SRatefig,cmap='hsv',vmin=0,vmax=0.3)
-    ax[itw].text(32,7,itime,fontsize=8,fontweight='bold',color='white')
 
-# plt.colorbar(sin,location='bottom',label="Slip (m)",shrink=.9)     
+tfig = np.array([0,1,2,3,4,5,7])
+ntfig = int(tfig.size)
+itfig = np.zeros([ntfig,])
+for it in range (0,ntfig):
+    itfig[it] = int(tfig[it]/dt)
+ 
+
+fig, axes = plt.subplots(nrows=8, ncols=1,sharex='col', sharey='row')
+for i,ax in enumerate(axes.flat):
+    it = int(i/dt)
+    itime = ("%3.1f" %(it*dt) )
+    SRatefig = SRate[:,:,it]
+    im=ax.pcolormesh(stkMat,dipMat,SRatefig,cmap="hot_r",vmin=0,vmax=0.3)
+    ax.text(32,7,itime,fontsize=8,fontweight='bold',color='black')
+fig.colorbar(im, ax=axes.ravel().tolist())
+
+
+
+
+
+
+
+
+
+
+
 
 print("  ")
 print(" END PROGRAM ")
 print("  ")
 
+
+
+
+
+ 
 
 
 
