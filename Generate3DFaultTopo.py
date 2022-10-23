@@ -30,8 +30,10 @@ warnings.filterwarnings("ignore")
 os.system('clear')
 
 dhF = 0.5  # Output subfaults size in Km
+
 inDir  = Path('Input/')
-outDir = Path('Outputs/3DFaults/')
+outFaultDir = Path('Outputs/3DFaults/')
+outTopoDir = Path('Outputs/Topo/')
 
 infile = 's2016AMATRI01PIZZ.fsp'  # Input file with fault data
 name = "AmatricePizzi2017_dhF"  # Output files name
@@ -41,10 +43,10 @@ nstkin = 30
 ndipin = 12
 
 # Lon-Lat limits for Topo Download
-Latmin = 42.1
-Latmax = 43.3
-Lonmin = 12.4
-Lonmax = 13.9
+Latmin = 42.0
+Latmax = 43.5
+Lonmin = 12.5
+Lonmax = 14.0
 
 # X and Y UTM limits (Km) for Model
 xmin = 300.0
@@ -69,16 +71,16 @@ print("  ")
 region = [Lonmin,Lonmax,Latmin,Latmax]
 grid = pygmt.datasets.load_earth_relief(resolution="03s", region=region)
 
-TopoZMat = grid.data
+zTopoMat = grid.data
 TopoLat = grid.lat.data
 TopoLon = grid.lon.data
 
-zmax = np.max(TopoZMat)/m
+zmax = np.max(zTopoMat)/m
 
 TopoLonMat, TopoLatMat = np.meshgrid(TopoLon,TopoLat)
-TopoXMat,TopoYMat, tmp1, tmp2 = utm.from_latlon(TopoLatMat, TopoLonMat,33,'N')
-TopoXMat = TopoXMat/m
-TopoYMat = TopoYMat/m
+xTopoMat,yTopoMat, tmp1, tmp2 = utm.from_latlon(TopoLatMat, TopoLonMat,33,'N')
+xTopoMat = xTopoMat/m
+yTopoMat = yTopoMat/m
 
 #Load Stations input file
 inStats =  pd.read_csv(inDir.joinpath("stations.dat"), delimiter= '\s+')
@@ -123,9 +125,9 @@ YFinMat = YFinMat/m
 
 fig = plt.figure(figsize = (10,10))
 ax = fig.subplots(1,1)
-mp=ax.pcolormesh(TopoXMat,TopoYMat,TopoZMat*m, cmap=cTopo)
+mp=ax.pcolormesh(xTopoMat,yTopoMat,zTopoMat*m, cmap=cTopo)
 plt.colorbar(mp,location='bottom',label="Elevación (m)",shrink=.6)
-fp=ax.pcolormesh(XFinMat,YFinMat,SlipinMat, cmap='viridis')
+fp=ax.pcolormesh(XFinMat,YFinMat,SlipinMat, cmap='hsv')
 plt.colorbar(fp,location='right',label="Slip (m)",shrink=.6)
 ax.scatter(inStats.X,inStats.Y,c ="red",linewidths = 0.5,marker ="^",edgecolor ="black",s = 80)
 for i in range(0,inStats.X.size):
@@ -216,7 +218,6 @@ XF3D = XFMat.flatten(order='F').transpose()
 YF3D = YFMat.flatten(order='F').transpose()
 ZF3D = ZFMat.flatten(order='F').transpose()
 
-
 # Find the indexes of the hypocenter
 hypoidip, hypoistk = np.where(hypod == np.min(hypod))
 
@@ -225,7 +226,6 @@ ax3 = fig.add_subplot(121, projection='3d')
 surf = ax3.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
                         antialiased=False )
 ax3.scatter(hypox,hypoy,hypoz,color='black', marker='*')
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
 ax3.set_xlabel(" X (Km)")
 ax3.set_ylabel(" Y (Km)")
 ax3.set_xlim(340,380)
@@ -240,7 +240,6 @@ ax4 = fig.add_subplot(122, projection='3d')
 surf = ax4.plot_surface( XFMat, YFMat, ZFMat, facecolors=cm.hsv(SlipMat), linewidth=0,
                         antialiased=False )
 ax4.scatter(hypox,hypoy,10,color='black', marker='*')
-#plt.colorbar(surf,location='top',label="Slip (m)",shrink=.6)
 ax4.set_xlabel(" X (Km)")
 ax4.set_ylabel(" Y (Km)")
 ax4.set_xlim(340,380)
@@ -251,7 +250,6 @@ ax4.azim = -90
 ax4.dist = 10
 ax4.elev = 90
 plt.show()
-
 
 ntri  = (nstk-1)*(ndip-1)*2
 tri   = np.zeros([ntri,3],dtype=int)
@@ -293,7 +291,7 @@ ax.set_title(' Delaunay Fault Triangulation ')
 
 name = name+str(int(dhF*1000))+'m'
 
-# Output Dictionary
+# Output Fault Dictionary
 Fault = {}
 
 Fault['dhF'] = dhF
@@ -335,7 +333,7 @@ print(" Output Fault Dimensions:")
 print(" Strike (Km): %6.2f nstk: %d dstk (Km): %6.2f " %(stk,nstk,np.linalg.norm(dstk)) )
 print(" Dip (Km): %6.2f ndip: %d ddip (Km): %6.2f " %(dip,ndip,np.linalg.norm(ddip)) )
 
-outfile = outDir.joinpath(name+'.pickle')
+outfile = outFaultDir.joinpath(name+'.pickle')
 
 fileObj = open(outfile, 'wb')
 pickle.dump(Fault, fileObj)
@@ -346,13 +344,42 @@ print(f" Fault info saved in:  {outfile} ")
 
 # Write .vector file
 fvectorHeader = "%d" %(ntri)
-fvector = outDir.joinpath(name+'.vector')
+fvector = outFaultDir.joinpath(name+'.vector')
 with open(fvector,'wb') as f:
     np.savetxt(f, univector,header=fvectorHeader, comments=' ',fmt='%10.6f')
 f.close()
 
 print()
 print(f" Fault vector file written in:  {fvector} ")
+
+# Output Topo Dictionary
+Topo = {}
+Topo['zTopoMat'] = zTopoMat/m
+Topo['TopoLon'] = TopoLon
+Topo['TopoLat'] = TopoLat
+Topo['TopoLonMat'] = TopoLonMat
+Topo['TopoLatMat'] = TopoLatMat
+Topo['xTopoMat'] = xTopoMat
+Topo['yTopoMat'] = yTopoMat
+
+name ='Topo_'+str(Lonmin)+'a'+str(Lonmax)+'_'+str(Latmin)+'a'+str(Latmax)
+
+outTopofile = outTopoDir.joinpath(name+'.pickle')
+
+TopoObj = open(outTopofile, 'wb')
+pickle.dump(Topo, TopoObj)
+TopoObj.close()
+
+print()
+print(f" Topo info saved in:  {outTopofile} ")
+
+# X and Y UTM limits (Km) for Model
+xmin = 300.0
+xmax = 400.0
+ymin = 4680.0
+ymax = 4780.0
+zmin = -60.0
+
 
 print("  ")
 print(" END PROGRAM ")

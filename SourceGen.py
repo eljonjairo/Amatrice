@@ -165,15 +165,35 @@ for i,ax in enumerate(axes.flat):
     ax.text(32,7,itime,fontsize=8,fontweight='bold',color='black')
 fig.colorbar(im, ax=axes.ravel().tolist())
 
+# Slip positive in the direction of dip and in the direction of strike
+SRdip = (-SRate.flatten(order='F'))*np.sin(np.deg2rad(rake))
+SRstk = (SRate.flatten(order='F'))*np.cos(np.deg2rad(rake))
+SRdip = np.float32(SRdip)
+SRstk = np.float32(SRstk)
+Nsr = np.arange(0,SRdip.size,1)
 
+outname = Fault['outname']
 
+SRdipName = 'Outputs/3DFaults/srate_dip_'+outname+'_ID_'+str(ID)
+SRstkName = 'Outputs/3DFaults/srate_str_'+outname+'_ID_'+str(ID)
 
+fsrd = FortranFile(SRdipName, 'w')
+fsrd.write_record(SRdip)
+fsrs = FortranFile(SRstkName, 'w')
+fsrs.write_record(SRstk)
 
+# Write fcoor file
+nflt = nstk*ndip
+fcoorHeader = "%d  %d %4.2f " %(nflt, nt, dt)
+fcoor = np.array(Fault['fcoor'])*m
+fcoorName = 'Outputs/3DFaults/fcoor_'+outname+'_ID_'+str(ID)+'.in'
 
+with open(fcoorName,'wb') as f:
+    np.savetxt(f, fcoor, header=fcoorHeader, comments=' ',fmt = '%9.4f')
 
-
-
-
+print(f" Coordinates saved in file: {fcoorName}" )
+print(f" SlipRate dip saved in file: {SRdipName}" )
+print(f" SlipRate stk saved in file: {SRstkName}" )
 
 
 print("  ")
