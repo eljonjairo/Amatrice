@@ -82,13 +82,30 @@ print()
 print(' Loading Syntetic Velocity files:')
 print()
 
-for istat in Stats:
+for istat in range (0,mstats):
     # Synthetic Data Proccesing
-    DataFileVE = DataFolder.joinpath(istat+'/IT.'+istat+'..HGE.D.EMSC-20160824_0000006.VEL.MP.ASC')
+    DataFileVE = DataFolder.joinpath( Stats[istat] +'/IT.'+ Stats[istat] +'..HGE.D.EMSC-20160824_0000006.VEL.MP.ASC')
     print(DataFileVE)
-    with open(DataFileVE, 'r') as f: lines = f.readlines()[65]
+    with open(DataFileVE, 'r') as f: lines = f.readlines()
+    dt_SYN = float(lines[28].split(':')[1])
+    nt_SYN = int(lines[29].split(':')[1])-1
+    velox_SYN = np.array(lines[64:-1]).astype(np.float)/100
+    time_SYN = np.linspace(0, dt_SYN*(nt_SYN-1), nt_SYN)
+    # Coefs for SYN filtering
+    fs_SYN = 1/dt_SYN
+    wlow_SYN = lowcut/(fs_SYN/2)                         # Normalize the frequency
+    whp_SYN  = highcut/(fs_SYN/2)
+    blow_SYN, alow_SYN = signal.butter(forder, wlow_SYN, 'low')
+    bhp_SYN, ahp_SYN = signal.butter(forder, whp_SYN, 'hp')
+    # low pass filtering
+    SYNvelox_low = signal.filtfilt(blow_SYN, alow_SYN, velox_SYN)
+    # high pass filtering
+    SYNvelox = signal.filtfilt(bhp_SYN, ahp_SYN, SYNvelox_low)
+    di = (istat-1)*0.1
 
-
+    fig = plt.figure(1)
+    plt.plot(time_SYN+tix,SYNvelox-di,color='r')
+    
 for istat in range (0,nstats):
    # DG Data Proccesing
     velox_DG = Vsyn_FSx[istat,:]
@@ -105,7 +122,7 @@ for istat in range (0,nstats):
 
     di = (istat-1)*0.1
 
-    fig = plt.figure(1)
+    fig = plt.figure(2)
     plt.plot(time_DG+tiy,DGveloy-di,color='k')
     plt.plot(time_DG+tix,DGvelox-di,color='k')
     plt.plot(time_DG+tiz,DGveloz-di,color='k')
