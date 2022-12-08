@@ -1,0 +1,8 @@
+0 0 0	==> nx, ny, nz in the physical model files
+0.	==> dx in the physical model files
+0 0 0	==> nx, ny, nz in the physical model files
+'./vp_AmatricePizzi2017_dhF500m.mesh'   ==> vp name file
+'./vs_AmatricePizzi2017_dhF500m.mesh'	==> vs name file
+'./rho_AmatricePizzi2017_dhF500m.mesh'	==> rho name file
+'./qp_AmatricePizzi2017_dhF500m.mesh'	==> qp name file
+'./qs_AmatricePizzi2017_dhF500m.mesh'	==> qs name file

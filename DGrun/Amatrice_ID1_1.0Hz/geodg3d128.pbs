@@ -1,0 +1,54 @@
+#!/bin/bash
+# Nombre del trabajo
+#PBS -N geodg3d
+#PBS -o geodg3d.out
+#PBS -e geodg3d.err
+#
+# Archivos de salida
+#
+# Cola de ejecucion (-q cola)
+# 
+#PBS -q mpi
+# Recursos solicitados (nodos, cpus, mem, etc)
+# se estan solicitando 640=20*32 cores por restricciones de la malla
+#PBS -l nodes=4:ppn=32
+##PBS -l nodes=gaia-gen2-01.geofisica.unam.mx:ppn=32+gaia-gen2-02.geofisica.unam.mx:ppn=32+gaia-gen2-03.geofisica.unam.mx:ppn=32+gaia-gen2-04.geofisica.unam.mx:ppn=32
+##PBS -l nodes=gaia-gen2-05.geofisica.unam.mx:ppn=32+gaia-gen2-06.geofisica.unam.mx:ppn=32+gaia-gen2-07.geofisica.unam.mx:ppn=32+gaia-gen2-08.geofisica.unam.mx:ppn=32
+##PBS -l nodes=gaia-gen2-09.geofisica.unam.mx:ppn=32+gaia-gen2-10.geofisica.unam.mx:ppn=32+gaia-gen2-11.geofisica.unam.mx:ppn=32+gaia-gen2-12.geofisica.unam.mx:ppn=32
+##PBS -l nodes=gaia-gen2-13.geofisica.unam.mx:ppn=32+gaia-gen2-14.geofisica.unam.mx:ppn=32+gaia-gen2-15.geofisica.unam.mx:ppn=32+gaia-gen2-16.geofisica.unam.mx:ppn=32
+##PBS -l nodes=gaia-gen2-17.geofisica.unam.mx:ppn=32+gaia-gen2-18.geofisica.unam.mx:ppn=32+gaia-gen2-19.geofisica.unam.mx:ppn=32+gaia-gen2-20.geofisica.unam.mx:ppn=32
+
+
+# Cargar y/o definir entorno (modulos, variables de ambiente)
+. /etc/profile.d/modules.sh
+module load intel/composer_xe_2013
+module load openmpi/intel_2013/4.0.2
+
+# Cambiar al directorio actual
+cd $PBS_O_WORKDIR
+
+# Informacion del JOB
+echo ==============================
+echo Ejecutandose en: `hostname`
+echo Fecha: `date`
+echo Directorio: `pwd`
+echo Recursos asignados:
+cat $PBS_NODEFILE
+echo Total: $PBS_NP cpus
+echo ==============================
+echo            SALIDA
+echo ==============================
+
+# Inicia trabajo
+
+./clean
+
+# MPI con Infiniband
+time mpirun -n $PBS_NP -hostfile $PBS_NODEFILE -mca pml ucx /home/jdiaz/DGAcambay/BIN/geodg3d_visco
+
+# MPI con Ethernet
+#time mpirun -n $PBS_NP -hostfile $PBS_NODEFILE -mca pml '^ucx' /home/villa/DGCrack/BIN/geodg3d_visco
+
+# Termina trabajo
+echo ==============================
+

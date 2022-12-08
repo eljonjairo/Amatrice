@@ -1,0 +1,27 @@
+ 1                             --> No cambiar (configuracion de adquisicion) 
+ 1 356943 4729680 -5000           --> Número de fuentes (solo una fuente)[Agregar coordenadas de la fuente únicamente para el caso de una fuente puntual] 
+ 1                             --> Número de receptores con coordenadas (x,y,z) 
+ 1   356943.142   4729680.041  1000        --> Lista de receptores numerados seguidos de sus coordenadas 
+ 19                            --> Receptores en la superficie libre (SL) 
+ 3                             --> Plano de superficie libre (1=yz, 2=xz, 3=xy) 
+ 1                             --> Capas de receptores debajo de la SL (contando a la SL) 
+ 0.0                           --> Lista con desplazamientos de las capas con respecto a la SL, name and distance (Km) 
+  1   359477.545  4721425.071  --> Lista de receptores numerados seguidos de sus coordenadas. AMT    8.5 
+  2   344323.597  4739534.595  --> Lista de receptores numerados seguidos de sus coordenadas. NRC   15.3 
+  3   337245.479  4731537.412  --> Lista de receptores numerados seguidos de sus coordenadas. CSC   18.3 
+  4   353311.307  4707837.097  --> Lista de receptores numerados seguidos de sus coordenadas. RM33   21.1 
+  5   364550.803  4709582.296  --> Lista de receptores numerados seguidos de sus coordenadas. MSC   21.3 
+  6   366185.190  4708259.774  --> Lista de receptores numerados seguidos de sus coordenadas. SPD   23.3 
+  7   333263.812  4713759.595  --> Lista de receptores numerados seguidos de sus coordenadas. LSS   26.7 
+  8   362327.496  4699499.341  --> Lista de receptores numerados seguidos de sus coordenadas. PZI1   30.2 
+  9   385514.074  4719872.254  --> Lista de receptores numerados seguidos de sus coordenadas. TERO   31.5 
+ 10   340942.512  4758451.278  --> Lista de receptores numerados seguidos de sus coordenadas. FEMA   32.9 
+ 11   341917.262  4697988.498  --> Lista de receptores numerados seguidos de sus coordenadas. ANT   33.6 
+ 12   329997.721  4703068.791  --> Lista de receptores numerados seguidos de sus coordenadas. TRL   36.1 
+ 13   389520.500  4744822.273  --> Lista de receptores numerados seguidos de sus coordenadas. ASP   37.8 
+ 14   361854.773  4766337.962  --> Lista de receptores numerados seguidos de sus coordenadas. SNO   38.1 
+ 15   315885.234  4732533.774  --> Lista de receptores numerados seguidos de sus coordenadas. SPM   39.6 
+ 16   352160.410  4769042.145  --> Lista de receptores numerados seguidos de sus coordenadas. MNF   40.3 
+ 17   315075.953  4749587.226  --> Lista de receptores numerados seguidos de sus coordenadas. TRE   45.3 
+ 18   330595.859  4766990.420  --> Lista de receptores numerados seguidos de sus coordenadas. CLF   45.5 
+ 19   323583.792  4764709.185  --> Lista de receptores numerados seguidos de sus coordenadas. FOS   47.9 
