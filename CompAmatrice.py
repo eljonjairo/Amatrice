@@ -36,62 +36,86 @@ DataFolder = "Data/Streams/"
 # Stats = [ "AMT","NRC","CSC","RM33","MSC","SPD","LSS","PZI1","TERO","FEMA","ANT"
 #         ,"TRL","ASP","SNO","SPM","MNF","TRE","CLF","FOS"]
 
-Stats = [ "AMT","NRC","CSC","RM33","MSC"]
+Stats  = [ "AMT","NRC","MNF","TRL"]
+
 
 # Filtering parameters
 lowcut  = 0.5                              # low pass cut frecuency
 highcut = 0.06                             # cut high pass frecuency
 
 # initial time for plotting components (s)
-tiy = 20;  tix = 65;  tiz = 110;
+tiy = 30;  tix = 80;  tiz = 130;
+xmin = 0; xmax = 205
+ymin = -10; ymax = 0
 
 print("  ")
 print(" START PROGRAM ")
 print("  ")
 
-di=0
+di=-1
 
 for stat in Stats:
     # DG Synthetic Data Reading
     DGfile = DGFolder + stat + "_DGVEL.pickle"
     print(f" Reading DG file {DGfile}")
     DGst = obspy.read(DGfile)    
-    DGx = DGst[0]
-    DGy = DGst[1]
-    DGz = DGst[2]
+    DGvx = DGst[0]
+    DGvy = DGst[1]
+    DGvz = DGst[2]
     # Data Reading
     Datafile = DataFolder + stat + "_VEL.pickle"
     print(f" Reading Data file {Datafile}")
     Datast = obspy.read(Datafile)
-    Datax = Datast[0]
-    Datay = Datast[1]
-    Dataz = Datast[2]
-    di -= max(abs(np.array(Datast.max())))*0.8
+    t = DGvx.stats.starttime
+    Datavx = Datast[0].slice(t,t+40)
+    Datavy = Datast[1].slice(t,t+40)
+    Datavz = Datast[2].slice(t,t+40)
+    di -= 1.1
     
-    OBStimex = Datax.times(reftime=DGx.stats.starttime)
-    SYNtimex = DGx.times()
-    OBSvx = di + Datax.filter("lowpass",freq=lowcut).data
-    SYNvx = di + DGx.filter("lowpass",freq=lowcut).data
-    OBStimey = Datay.times(reftime=DGy.stats.starttime)
-    SYNtimey = DGy.times()
-    OBSvy = di + Datay.filter("lowpass",freq=lowcut).data
-    SYNvy = di + DGy.filter("lowpass",freq=lowcut).data
-    OBStimez = Dataz.times(reftime=DGz.stats.starttime)
-    SYNtimez = DGz.times()
-    OBSvz = di + Dataz.filter("lowpass",freq=lowcut).data
-    SYNvz = di + DGz.filter("lowpass",freq=lowcut).data
-        
-    plt.plot(OBStimey+tiy,OBSvy,color='r')
-    plt.plot(SYNtimey+tiy,SYNvy,color='k')
-    plt.plot(OBStimex+tix,OBSvx,color='r')
-    plt.plot(SYNtimex+tix,SYNvx,color='k')
-    plt.plot(OBStimez+tiz,OBSvz,color='r')
-    plt.plot(SYNtimez+tiz,SYNvz,color='k')
-    plt.text(-2, di, stat,fontsize=10,fontweight='bold')
+    OBStimex = Datavx.times(reftime=DGvx.stats.starttime)
+    SYNtimex = DGvx.times()
+    maxv =  max([abs(ele) for ele in Datast.max()])
+    Datavx.normalize(norm=maxv)
+    DGvx.normalize(norm=maxv)
+    OBSvx = Datavx.filter("lowpass",freq=lowcut).data
+    SYNvx = DGvx.filter("lowpass",freq=lowcut).data
+    OBStimey = Datavy.times(reftime=DGvy.stats.starttime)
+    SYNtimey = DGvy.times()
+    Datavy.normalize(norm=maxv)
+    DGvy.normalize(norm=maxv)
+    OBSvy = Datavy.filter("lowpass",freq=lowcut).data
+    SYNvy = DGvy.filter("lowpass",freq=lowcut).data
+    OBStimez = Datavz.times(reftime=DGvz.stats.starttime)
+    SYNtimez = DGvz.times()
+    Datavz.normalize(norm=maxv)
+    DGvz.normalize(norm=maxv)
+    OBSvz = Datavz.filter("lowpass",freq=lowcut).data
+    SYNvz = DGvz.filter("lowpass",freq=lowcut).data
+
+    
+    # Velocity Comparison
+    fig = plt.figure(1)
+    plt.title(" Amatrice ")    
+    plt.plot(OBStimey+tiy,OBSvy+di,color='r')
+    plt.plot(SYNtimey+tiy,SYNvy+di,color='k')
+    plt.plot(OBStimex+tix,OBSvx+di,color='r')
+    plt.plot(SYNtimex+tix,SYNvx+di,color='k')
+    plt.plot(OBStimez+tiz,OBSvz+di,color='r')
+    plt.plot(SYNtimez+tiz,SYNvz+di,color='k')
+    plt.text(4, di, stat,fontsize=10,fontweight='bold')
+    plt.text(2, -1, 'Station',fontsize=10,fontweight='bold')
+    plt.text(40, -1, ' Vy',fontsize=10,fontweight='bold')
+    plt.text(90, -1, ' Vx',fontsize=10,fontweight='bold')
+    plt.text(145, -1, ' Vz',fontsize=10,fontweight='bold')
+    plt.text(175, -0.5, ' max vel ',fontsize=10,fontweight='bold')
+    plt.text(175, -1, ' (cm/s)',fontsize=10,fontweight='bold')
+    plt.text(177, di, '{:5.2f}'.format(maxv),fontsize=10,fontweight='bold')
     plt.tick_params(left = False, right = False , labelleft = False ,
                 labelbottom = False, bottom = False)
-
-
+    plt.legend(['Data','DG'],loc='lower center')
+    plt.xlim([xmin, xmax])
+    plt.ylim([ymin, ymax])
+    
 
 
 
