@@ -26,8 +26,9 @@ plt.close('all')
 os.system('clear')
 
 # DG folder
-DGFolder = "DGrun/Amatrice_ID1_1.0Hz/"
-
+# DGFolder = "DGrun/Amatrice_ID1_1.0Hz/"
+# DGFolder = "DGrun/Amatrice_ID2_1.0Hz/"
+DGFolder = "DGrun/Amatrice_ID3_1.0Hz/"
 # Event time
 teven = "2016-08-24T01:36:32"
 
@@ -37,8 +38,11 @@ Stats = [ "AMT","NRC","CSC","RM33","MSC","SPD","LSS","PZI1","TERO","FEMA","ANT"
 
 nstats = int(len(Stats))
 
-nt = 822
-dt = 0.0486502
+#nt = 822
+#dt = 0.0486502
+
+nt = 813
+dt = 0.0491877
 
 print("  ")
 print(" START PROGRAM ")

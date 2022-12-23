@@ -42,14 +42,15 @@ ObjName = 'AmatricePizzi2017_dhF500m.pickle'
 
 # Source Inputs
 dt = 0.1;
-lowcut  = 2.0                              # srate low pass cut frecuency
+lowcut  = 1.0                              # srate low pass cut frecuency
 highcut = 0.01                             # srate cut high pass frecuency
-fs = 1/dt                                  # Sample rate
+fn = 1/dt/2                                # Nyquist frecuency (Sample rate/2)
+ 
 
 rake = -85
 
 # ID of simulation
-ID = 1
+ID = 3
 
 # Dimension of input fault
 nstkin = 30
@@ -82,7 +83,8 @@ DeltaSlipinMat = np.zeros([ndipin,nstkin,ntwin])
 twin = np.arange(6,46,2)
 itw = 0
 for it in twin:
-    DSliptmp = np.flipud(np.reshape(inData[:,it], (ndipin, nstkin)))
+    #DSliptmp = np.flipud(np.reshape(inData[:,it], (ndipin, nstkin)))
+    DSliptmp = np.reshape(inData[:,it], (ndipin, nstkin))
     DeltaSlipinMat[:,:,itw] = DSliptmp
     itw += 1
 
@@ -142,12 +144,20 @@ fig = plt.figure()
 plt.scatter(inTime,SlipMatEsp[hypoidip,hypoistk,:])
 plt.plot(Time,SlipMat[hypoidip,hypoistk,:].transpose())
 
-#Sliprate calculation
+# Sliprate calculation
 SRate = np.zeros([ndip,nstk,nt])
 for it in range(1,nt):
     for istk in range (0,nstk):
         for idip in range (0,ndip ):
             SRate[idip,istk,it] = ( SlipMat[idip,istk,it]-SlipMat[idip,istk,it-1])/dt
+            
+# Filtered Sliprate
+b, a = signal.butter(4, lowcut/fn)
+SRateFilt = SRate
+for istk in range (0,nstk):
+    for idip in range (0,ndip ):
+        SRatetmp = SRate[idip,istk,:]                
+        SRateFilt[idip,istk,:] = signal.filtfilt(b, a, SRatetmp)
 
 tfig = np.array([0,1,2,3,4,5,7])
 ntfig = int(tfig.size)
@@ -164,6 +174,17 @@ for i,ax in enumerate(axes.flat):
     im=ax.pcolormesh(stkMat,dipMat,SRatefig,cmap="hot_r",vmin=0,vmax=0.3)
     ax.text(32,7,itime,fontsize=8,fontweight='bold',color='black')
 fig.colorbar(im, ax=axes.ravel().tolist())
+
+
+fig, axes = plt.subplots(nrows=8, ncols=1,sharex='col', sharey='row')
+for i,ax in enumerate(axes.flat):
+    it = int(i/dt)
+    itime = ("%3.1f" %(it*dt) )
+    SRatefig = SRateFilt[:,:,it]
+    im=ax.pcolormesh(stkMat,dipMat,SRatefig,cmap="hot_r",vmin=0,vmax=0.3)
+    ax.text(32,7,itime,fontsize=8,fontweight='bold',color='black')
+fig.colorbar(im, ax=axes.ravel().tolist())
+
 
 # Slip positive in the direction of dip and in the direction of strike
 SRdip = (-SRate.flatten(order='F'))*np.sin(np.deg2rad(rake))

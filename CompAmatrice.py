@@ -28,7 +28,9 @@ plt.close('all')
 os.system('clear')
 
 # DG folder
-DGFolder = "DGrun/Amatrice_ID1_1.0Hz/"
+# DGFolder = "DGrun/Amatrice_ID1_1.0Hz/"
+# DGFolder = "DGrun/Amatrice_ID2_1.0Hz/"
+DGFolder = "DGrun/Amatrice_ID3_1.0Hz/"
 
 # Data folder
 DataFolder = "Data/Streams/"
